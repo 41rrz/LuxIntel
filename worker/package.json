@@ -1,10 +1,17 @@
 {
   "name": "lux-intel-worker",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.3.0",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "check": "wrangler deploy --dry-run --outdir .wrangler-dry"
   },
-  "devDependencies": { "wrangler": "latest" }
+  "devDependencies": {
+    "wrangler": "4.125.0"
+  },
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=10"
+  }
 }

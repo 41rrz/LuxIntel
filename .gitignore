@@ -6,3 +6,6 @@ dist
 worker/node_modules
 .wrangler
 .DS_Store
+.wrangler-dry
+*.tsbuildinfo
+worker/.wrangler-dry

@@ -4,3 +4,7 @@ compatibility_date = "2026-08-01"
 
 [observability]
 enabled = true
+
+# Optional deep inventory support:
+# npx wrangler secret put ROBLOX_OPEN_CLOUD_API_KEY
+# The public profile scanner works without this secret.
