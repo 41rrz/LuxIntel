@@ -75,3 +75,9 @@ Cloudflare Worker API aggregator
 
 ## Security
 This project does **not** request `.ROBLOSECURITY` cookies. Keep it that way. Public data should use public Roblox endpoints; authenticated features should use official Roblox supported auth mechanisms.
+
+
+## GitHub Actions / Node version
+
+The Pages workflow uses Node.js 24 and current `actions/checkout@v7` / `actions/setup-node@v7`. npm package caching is deliberately disabled until a real `package-lock.json` is committed, so GitHub Actions will not fail when the lockfile is absent.
+
