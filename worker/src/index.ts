@@ -347,6 +347,7 @@ async function profileByUsername(username: string, env: Env) {
     inventory: inventoryR.data,
     experiences: experiencesR.data.games,
     fetchedAt: new Date().toISOString(),
+    schemaVersion: 3,
     modules: {
       profile: moduleStatus(detailR),
       social: { ok: friendsCountR.ok && followersR.ok && followingR.ok && friendsR.ok, message: friendsR.ok ? undefined : resultError(friendsR) },
@@ -404,7 +405,7 @@ export default {
     const url = new URL(request.url)
 
     if (url.pathname === '/api/health') {
-      return json({ ok: true, service: 'Lux Intel API', version: '0.3.0', inventoryOpenCloud: Boolean(env.ROBLOX_OPEN_CLOUD_API_KEY) }, 200, 10)
+      return json({ ok: true, service: 'Lux Intel API', version: '0.3.1', schemaVersion: 3, inventoryOpenCloud: Boolean(env.ROBLOX_OPEN_CLOUD_API_KEY) }, 200, 10)
     }
 
     if (url.pathname === '/api/search') {
@@ -426,12 +427,15 @@ export default {
     if (match) {
       const username = decodeURIComponent(match[1]).trim().replace(/^@/, '')
       if (!/^[A-Za-z0-9_]{3,20}$/.test(username)) return json({ error: 'Enter a valid Roblox username.' }, 400, 0)
-      const cached = await fromEdgeCache(request)
+      const cacheUrl = new URL(request.url)
+      cacheUrl.searchParams.set('__schema', '3')
+      const cacheRequest = new Request(cacheUrl.toString(), request)
+      const cached = await fromEdgeCache(cacheRequest)
       if (cached) return cached
       try {
         const profile = await profileByUsername(username, env)
         const response = profile ? json(profile, 200, 90) : json({ error: 'Roblox user not found.' }, 404, 0)
-        putEdgeCache(request, response, context)
+        putEdgeCache(cacheRequest, response, context)
         return response
       } catch (error) {
         return json({ error: error instanceof Error ? error.message : 'Profile scan failed.' }, 502, 0)
