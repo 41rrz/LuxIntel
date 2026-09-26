@@ -33,6 +33,7 @@ import {
   History,
   Layers3,
   LayoutDashboard,
+  Maximize2,
   Network,
   PackageSearch,
   RefreshCw,
@@ -233,7 +234,10 @@ export default function App() {
       setProfile(data)
       setQuery(data.name)
       setDemo(false)
-      setActiveTab('Overview')
+      const sharedTab = !pushUrl
+        ? (new URLSearchParams(window.location.search).get('tab') as Tab | null)
+        : null
+      setActiveTab(sharedTab && tabs.includes(sharedTab) ? sharedTab : 'Overview')
       setApiState('online')
       addRecent(data.name)
       if (pushUrl) {
@@ -288,7 +292,7 @@ export default function App() {
           <div className="brand-mark">L</div>
           <div>
             <b>Lux Intel</b>
-            <span>ROBLOX PROFILE ANALYTICS</span>
+            <span>ROBLOX PROFILE & AVATAR EXPLORER</span>
           </div>
         </button>
         <div className="top-actions">
@@ -304,15 +308,15 @@ export default function App() {
 
       <section className={`hero ${demo ? '' : 'hero-compact'}`}>
         <div className="hero-copy">
-          <span className="pill"><Sparkles size={14} /> PROFILE INTELLIGENCE V0.3</span>
+          <span className="pill"><Sparkles size={14} /> PROFILE & AVATAR EXPLORER</span>
           <h1>
-            Roblox profiles,
+            Meet the player
             <br />
-            <em>actually explained.</em>
+            <em>behind the avatar.</em>
           </h1>
           <p>
-            One search turns scattered public Roblox data into a readable account, avatar, social,
-            creator, badge, inventory, and identity overview.
+            Explore a player’s avatar, saved looks, community, creations, achievements, and public
+            profile details in one place.
           </p>
         </div>
 
@@ -371,6 +375,7 @@ export default function App() {
       {loading && <LoadingStrip />}
 
       <section className="profile-card">
+        <div className="profile-backdrop" aria-hidden="true"><img src={profile.avatarFullBody} alt="" /></div>
         {demo && <div className="demo-badge">PREVIEW</div>}
         <div className="avatar-wrap">
           <AvatarImage src={profile.avatarHeadshot} alt={`${profile.name} avatar`} />
@@ -390,6 +395,9 @@ export default function App() {
           </div>
         </div>
         <div className="profile-actions">
+          <button className="quiet-button avatar-shortcut" onClick={() => { setActiveTab('Avatar'); document.querySelector('.workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
+            <Shirt size={15} /> Explore avatar
+          </button>
           {!demo && (
             <a className="quiet-button" href={`https://www.roblox.com/users/${profile.id}/profile`} target="_blank" rel="noreferrer">
               Roblox profile <ArrowUpRight size={15} />
@@ -479,6 +487,7 @@ function ApiBadge({ state }: { state: ApiState }) {
 
 function AvatarImage({ src, alt, className = '' }: { src?: string; alt: string; className?: string }) {
   const [failed, setFailed] = useState(false)
+  useEffect(() => setFailed(false), [src])
   if (!src || failed) {
     return <div className={`avatar-fallback ${className}`} aria-label={alt}><CircleUserRound size={28} /></div>
   }
@@ -572,6 +581,9 @@ function Overview({ profile, ageDays, coverage }: { profile: ProfileData; ageDay
 }
 
 function AvatarTab({ profile }: { profile: ProfileData }) {
+  const [selectedOutfit, setSelectedOutfit] = useState<number | null>(null)
+  const [camera, setCamera] = useState<'full' | 'headshot'>('full')
+  const [viewerOpen, setViewerOpen] = useState(false)
   const grouped = useMemo(() => {
     const groups = new Map<string, AvatarAsset[]>()
     for (const asset of profile.avatar.assets ?? []) {
@@ -580,16 +592,30 @@ function AvatarTab({ profile }: { profile: ProfileData }) {
     }
     return [...groups.entries()]
   }, [profile.avatar.assets])
+  const outfit = profile.avatar.outfits.find((item) => item.id === selectedOutfit)
+  const avatarImage = outfit?.thumbnailUrl || (camera === 'headshot' ? profile.avatarHeadshot : profile.avatarFullBody)
+  const avatarLabel = outfit?.name || (camera === 'headshot' ? 'Headshot' : 'Current avatar')
 
   return (
     <section className="content-grid">
-      <Panel title="Current avatar" subtitle="Live full-body render and avatar definition" className="avatar-panel wide">
+      <Panel title="Avatar studio" subtitle="Explore the current look and saved outfit previews" className="avatar-panel wide">
         <div className="full-avatar">
-          <div className="avatar-stage"><AvatarImage src={profile.avatarFullBody} alt={`${profile.name} full avatar`} /></div>
+          <div className="avatar-stage-wrap">
+            <div className="avatar-stage" data-camera={camera}>
+              <span className="stage-kicker"><Sparkles size={13} /> {outfit ? 'SAVED OUTFIT' : 'LIVE AVATAR'}</span>
+              <AvatarImage src={avatarImage} alt={`${profile.name} ${avatarLabel}`} />
+              <button className="stage-expand" onClick={() => setViewerOpen(true)} aria-label="Expand avatar viewer" title="Expand viewer"><Maximize2 size={16} /></button>
+            </div>
+            <div className="viewer-controls" aria-label="Avatar view">
+              <button className={!outfit && camera === 'full' ? 'active' : ''} aria-pressed={!outfit && camera === 'full'} onClick={() => { setSelectedOutfit(null); setCamera('full') }}>Full avatar</button>
+              <button className={!outfit && camera === 'headshot' ? 'active' : ''} aria-pressed={!outfit && camera === 'headshot'} onClick={() => { setSelectedOutfit(null); setCamera('headshot') }}>Headshot</button>
+              {outfit && <button className="active" aria-pressed="true" onClick={() => setSelectedOutfit(null)}>Current look</button>}
+            </div>
+          </div>
           <div className="avatar-summary">
-            <span className="eyebrow">AVATAR TYPE</span>
-            <h3>{profile.avatar.playerAvatarType || 'Unknown rig'}</h3>
-            <p>{profile.avatar.assets.length} equipped assets are visible in the current avatar response.</p>
+            <span className="eyebrow">NOW VIEWING · {avatarLabel.toUpperCase()}</span>
+            <h3>{outfit?.name || profile.avatar.playerAvatarType || 'Unknown rig'}</h3>
+            <p>{outfit ? 'A public saved outfit preview from this profile.' : `${profile.avatar.assets.length} equipped assets are visible in the current avatar response.`}</p>
             <div className="summary-chips">
               <span><Boxes size={14} /> {profile.avatar.assets.length} assets</span>
               <span><WandSparkles size={14} /> {profile.avatar.emotes?.length || 0} emotes</span>
@@ -634,20 +660,41 @@ function AvatarTab({ profile }: { profile: ProfileData }) {
         </div>
       </Panel>
 
-      <Panel title="Saved outfits" subtitle={`${profile.avatar.outfits.length} public avatar outfits in this scan`} className="wide">
+      <Panel title="Saved outfit gallery" subtitle={`${profile.avatar.outfits.length} public avatar outfits · select one to preview it`} className="wide">
         {profile.avatar.outfits.length ? (
           <div className="outfit-grid">
             {profile.avatar.outfits.map((outfit) => (
-              <article className="outfit-card" key={outfit.id}>
-                <div className="outfit-thumb">{outfit.thumbnailUrl ? <img src={outfit.thumbnailUrl} alt={`${outfit.name} outfit`} /> : <Shirt size={26} />}</div>
-                <div><b>{outfit.name}</b><small>ID {outfit.id}{outfit.outfitType ? ` · ${outfit.outfitType}` : ''}</small></div>
-              </article>
+              <button className={`outfit-card ${selectedOutfit === outfit.id ? 'selected' : ''}`} key={outfit.id} onClick={() => { setSelectedOutfit(outfit.id); setCamera('full') }} aria-pressed={selectedOutfit === outfit.id} disabled={!outfit.thumbnailUrl} title={outfit.thumbnailUrl ? `Preview ${outfit.name}` : 'Roblox did not return a preview for this outfit'}>
+                <div className="outfit-thumb">{outfit.thumbnailUrl ? <img src={outfit.thumbnailUrl} alt={`${outfit.name} outfit`} /> : <><Shirt size={26} /><span>Preview unavailable</span></>}</div>
+                <div><b>{outfit.name}</b><small>{outfit.outfitType || 'Saved outfit'}</small></div>
+              </button>
             ))}
           </div>
         ) : <EmptyState icon={Shirt} title="No saved outfits returned" text={profile.modules.outfits?.message || 'Roblox returned no public saved outfits for this account.'} />}
         {profile.avatar.outfitsHasMore && <div className="info-note">Showing the first 50 public outfits. More are available upstream.</div>}
       </Panel>
+      {viewerOpen && <AvatarViewerDialog src={avatarImage} alt={`${profile.displayName} · ${avatarLabel}`} onClose={() => setViewerOpen(false)} />}
     </section>
+  )
+}
+
+function AvatarViewerDialog({ src, alt, onClose }: { src: string; alt: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
+  return (
+    <div className="modal-backdrop viewer-backdrop" role="presentation" onMouseDown={(event: MouseEvent<HTMLDivElement>) => event.target === event.currentTarget && onClose()}>
+      <section className="avatar-viewer-modal" role="dialog" aria-modal="true" aria-label="Avatar preview">
+        <header><div><span className="eyebrow">AVATAR VIEWER</span><h2>{alt}</h2></div><button className="icon-button" onClick={onClose} aria-label="Close avatar viewer"><X size={18} /></button></header>
+        <div className="avatar-viewer-image"><AvatarImage src={src} alt={alt} /></div>
+        <p>Preview of the public Roblox avatar image returned for this profile.</p>
+      </section>
+    </div>
   )
 }
 

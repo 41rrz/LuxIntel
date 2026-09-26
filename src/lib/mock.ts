@@ -24,7 +24,9 @@ export const mockProfile: ProfileData = {
     scales: { height: 1, width: 1, head: 1, bodyType: 0, proportion: 0 },
     bodyColors: { headColorId: 194, torsoColorId: 194 },
     emotes: [],
-    outfits: [],
+    outfits: [
+      { id: 156001, name: 'Demo explorer look', outfitType: 'Avatar', thumbnailUrl: fullBody },
+    ],
     outfitsHasMore: false,
   },
   presence: { userPresenceType: 0, lastLocation: 'Offline' },
